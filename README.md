@@ -207,7 +207,7 @@ Pinagem implementada nesta etapa:
 | Função | Pinos | Estado |
 |---|---|---|
 | QSPI firmware | PB2, PB6, PD11, PD12, PE2, PD13 | implementada |
-| USART3 | PD8 TX, PD9 RX (AF7) | implementada, 115200 8N1 |
+| USART3 | PB10 TX, PB11 RX (AF7) | implementada, 115200 8N1 |
 | LED de erro | PE3 | implementado, padrão por código |
 | SWD | PA13 SWDIO, PA14 SWCLK | preservado |
 
@@ -221,32 +221,38 @@ Pinagem reservada, ainda sem driver:
 | USB FS | PA11 DM, PA12 DP |
 | botão K1 | PC13 |
 | ROM serial recovery | PA9/PA10 livres |
-| SAI validado no pacote | PE4 FS_A/AF6, PE5 SCK_A/AF6, PE6 SD_A/AF6 |
+| áudio SAI3 futuro | PD0 SCK_A, PD4 FS_A, PD1 SD_A, PD15 MCLK_A, PD9 SD_B; AF6 |
 
 SPI1 fica exclusivo para modelos/IRs e não será compartilhado com o display.
 MCLK nunca será ligado ao PCM5102.
 
-### Bloqueio de pinagem de áudio
+### Pinagem de áudio aprovada para a próxima etapa
 
-A pinagem proposta `PF6=SAI1_SD_B` e `PG7=SAI1_MCLK_A` é impossível no
-STM32H743VI **LQFP100**: as funções existem no MCU, porém PF6 e PG7 não existem
-nesse encapsulamento e não estão expostos na WeAct. Por isso nenhum GPIO, SAI
-ou áudio foi implementado.
+A proposta original para SAI1 era impossível no STM32H743VI **LQFP100**:
+`PF6=SAI1_SD_B` e `PG7=SAI1_MCLK_A` não existem nesse encapsulamento. A solução
+aprovada usa os dois blocos do SAI3:
 
-As alternativas completas que exigem decisão de hardware são:
+| Rede de áudio | Função SAI3 | GPIO | Header WeAct |
+|---|---|---|---|
+| BCLK compartilhado | SCK_A | PD0/AF6 | P1-17 |
+| LRCK compartilhado | FS_A | PD4/AF6 | P1-13 |
+| PCM5102 DIN | SD_A | PD1/AF6 | P1-16 |
+| PCM1808 DOUT | SD_B | PD9/AF6 | P1-37 |
+| PCM1808 SCKI/MCLK | MCLK_A | PD15/AF6 | P1-31 |
 
-1. trocar para uma placa/encapsulamento que exponha PF6 e PG7, preservando a
-   arquitetura SAI definida;
-2. no LQFP100, PE3 é a única outra ocorrência de `SAI1_SD_B`, mas conflita com
-   o LED onboard e seu uso está explicitamente proibido; PE2 é a única outra
-   ocorrência de `SAI1_MCLK_A`, mas é IO2 da QSPI e não pode ser liberado em um
-   firmware XIP;
-3. redesenhar o áudio: fornecer 12,288 MHz ao PCM1808 por oscilador externo e
-   escolher outro periférico receptor/pinagem, ou aceitar uma alteração física
-   envolvendo PE3. Isso muda a arquitetura definida e precisa de aprovação e
-   nova validação de AF/DMA/sincronismo.
+O Block A será master transmitter. O Block B será synchronous receiver e usará
+internamente SCK/FS do Block A, portanto `SCK_B`, `FS_B` e `MCLK_B` não serão
+roteados. BCLK e LRCK serão ligados aos dois codecs; MCLK será ligado somente
+ao PCM1808. O pino SCK/MCLK da breakout PCM5102 permanece aterrado.
 
-Não há substituição automática de pinos no firmware.
+Antes de conectar `PD4` ao LRCK, é obrigatório **abrir o solder bridge SB2** da
+WeAct V1.2, que liga PD4 ao contato `MicroSD_SW`, e confirmar com multímetro que
+não existe continuidade. A USART3 foi movida de PD8/PD9 para PB10/PB11 para
+liberar PD9 ao SAI3 Block B. PLL3 ficará reservada ao clock de áudio; PLL2
+continua exclusiva para QSPI.
+
+SAI3, DMA de áudio e passthrough continuam fora do escopo desta fundação e não
+estão implementados.
 
 ## Erros e recuperação
 

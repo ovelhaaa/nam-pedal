@@ -11,14 +11,14 @@ void HAL_UART_MspInit(UART_HandleTypeDef *handle) {
     return;
   }
 
-  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_USART3_CLK_ENABLE();
-  gpio.Pin = GPIO_PIN_8 | GPIO_PIN_9;
+  gpio.Pin = GPIO_PIN_10 | GPIO_PIN_11;
   gpio.Mode = GPIO_MODE_AF_PP;
   gpio.Pull = GPIO_PULLUP;
   gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   gpio.Alternate = GPIO_AF7_USART3;
-  HAL_GPIO_Init(GPIOD, &gpio);
+  HAL_GPIO_Init(GPIOB, &gpio);
 }
 
 bool platform_uart_init(void) {
