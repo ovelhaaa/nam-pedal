@@ -4,3 +4,6 @@
 [submodule "nam-binary-loader"]
 	path = nam-binary-loader
 	url = https://github.com/tone-3000/nam-binary-loader.git
+[submodule "third_party/STM32CubeH7"]
+	path = third_party/STM32CubeH7
+	url = https://github.com/STMicroelectronics/STM32CubeH7.git

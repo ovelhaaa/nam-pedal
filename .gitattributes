@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.s text eol=lf
+*.S text eol=lf
+*.ld text eol=lf
+*.bin binary

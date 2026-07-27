@@ -19,7 +19,7 @@ Sem RAM externa.
   explícito — SCK/MCLK amarrado em GND na maioria dessas breakouts, PLL
   interno derivado do BCK; **confirmar fisicamente na placa antes de codar**)
 - **Interface de áudio:** periférico **SAI** do H743 (não SPI genérico) —
-  SAI1 Block A (playback → PCM5102) + Block B (record ← PCM1808) sincronizados
+  SAI3 Block A (playback → PCM5102) + Block B (record ← PCM1808) sincronizados
   no mesmo BCLK/LRCK
 - **Display:** LCD colorido 2.25" 284x76, driver ST7789, interface SPI
 
@@ -100,3 +100,10 @@ tempo real.
 **Resolvido:** PCM5102 com SCK/MCLK aterrado (modo sem MCLK, clock derivado
 via PLL interno do BCK). Configurar o SAI sem gerar/rotear saída de MCLK
 para este bloco.
+
+**Resolvido:** usar SAI3 no STM32H743VI LQFP100. Block A será master
+transmitter em `PD0=SCK_A`, `PD4=FS_A`, `PD1=SD_A` e `PD15=MCLK_A`; Block B
+será synchronous receiver em `PD9=SD_B`. Abrir obrigatoriamente o solder
+bridge `SB2` da WeAct antes de usar PD4, pois ele liga esse GPIO ao contato
+`MicroSD_SW`. Mover USART3 para `PB10=TX` e `PB11=RX`. MCLK vai somente ao
+PCM1808; o PCM5102 permanece sem MCLK.
