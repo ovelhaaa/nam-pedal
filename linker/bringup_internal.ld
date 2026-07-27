@@ -2,8 +2,8 @@ ENTRY(Reset_Handler)
 
 MEMORY
 {
-  /* Diagnostic image starts after the 128 KiB bootloader reservation. */
-  FLASH (rx)       : ORIGIN = 0x08020000, LENGTH = 1920K
+  /* Standalone diagnostic temporarily occupies the bootloader slot. */
+  FLASH (rx)       : ORIGIN = 0x08000000, LENGTH = 128K
   DTCM (rw)        : ORIGIN = 0x20000000, LENGTH = 128K
   AXI_SRAM (rwx)   : ORIGIN = 0x24000000, LENGTH = 512K
   DMA_D2 (rw)      : ORIGIN = 0x30000000, LENGTH = 32K

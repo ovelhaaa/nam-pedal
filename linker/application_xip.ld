@@ -18,7 +18,7 @@ SECTIONS
 {
   .qspi_vector :
   {
-    . = ALIGN(512);
+    . = ALIGN(1024);
     KEEP(*(.isr_vector))
     . = ALIGN(4);
   } > QSPI
@@ -161,6 +161,8 @@ SECTIONS
 
 ASSERT(ADDR(.qspi_vector) == 0x90010000,
        "XIP vector table must be exactly 0x90010000")
+ASSERT(SIZEOF(.qspi_vector) <= 1024,
+       "Interrupt vector table exceeds its 1024-byte alignment")
 ASSERT(SIZEOF(.model_weights_dtcm) <= LENGTH(DTCM),
        "DTCM model weights exceed 128 KiB")
 ASSERT((SIZEOF(.audio_dma_buffers) + SIZEOF(.display_dma_buffers)) <= LENGTH(DMA_D2),

@@ -15,10 +15,30 @@ static QSPI_HandleTypeDef qspi;
 static bool qspi_memory_mapped;
 
 static const platform_qspi_device_t supported_devices[] = {
-    {0xEFU, 0x40U, 0x17U, "Winbond W25Q64JV (EF4017)", 0xEBU, 0x35U, 0x31U,
-     0x02U, 0xF0U, 4U},
-    {0xEFU, 0x70U, 0x17U, "Winbond W25Q64JV-IQ/JQ (EF7017)", 0xEBU, 0x35U,
-     0x31U, 0x02U, 0xF0U, 4U},
+    {
+        .manufacturer = 0xEFU,
+        .memory_type = 0x40U,
+        .capacity = 0x17U,
+        .name = "Winbond W25Q64JV (EF4017)",
+        .quad_io_read_opcode = 0xEBU,
+        .status2_read_opcode = 0x35U,
+        .status2_write_opcode = 0x31U,
+        .qe_mask = 0x02U,
+        .mode_bits = 0xF0U,
+        .dummy_cycles = 4U,
+    },
+    {
+        .manufacturer = 0xEFU,
+        .memory_type = 0x70U,
+        .capacity = 0x17U,
+        .name = "Winbond W25Q64JV-IQ/JQ (EF7017)",
+        .quad_io_read_opcode = 0xEBU,
+        .status2_read_opcode = 0x35U,
+        .status2_write_opcode = 0x31U,
+        .qe_mask = 0x02U,
+        .mode_bits = 0xF0U,
+        .dummy_cycles = 4U,
+    },
 };
 
 static void command_defaults(QSPI_CommandTypeDef *command) {

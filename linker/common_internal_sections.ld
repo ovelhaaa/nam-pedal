@@ -6,7 +6,7 @@ SECTIONS
 {
   .isr_vector :
   {
-    . = ALIGN(512);
+    . = ALIGN(1024);
     KEEP(*(.isr_vector))
     . = ALIGN(4);
   } > ROM
@@ -163,5 +163,7 @@ SECTIONS
 
 ASSERT(SIZEOF(.model_weights_dtcm) <= LENGTH(DTCM),
        "DTCM model weights exceed 128 KiB")
+ASSERT(SIZEOF(.isr_vector) <= 1024,
+       "Interrupt vector table exceeds its 1024-byte alignment")
 ASSERT((SIZEOF(.audio_dma_buffers) + SIZEOF(.display_dma_buffers)) <= LENGTH(DMA_D2),
        "DMA buffers exceed the 32 KiB non-cacheable D2 region")

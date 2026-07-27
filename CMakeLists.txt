@@ -83,6 +83,11 @@ add_executable(${TARGET} ${HAL_SOURCES} ${PLATFORM_SOURCES} "${MAIN_SOURCE}")
 set_target_properties(${TARGET} PROPERTIES
     OUTPUT_NAME "${TARGET}"
     SUFFIX ".elf")
+set_property(TARGET ${TARGET} APPEND PROPERTY LINK_DEPENDS "${LINKER_SCRIPT}")
+if(NOT NAM_IMAGE STREQUAL "xip")
+  set_property(TARGET ${TARGET} APPEND PROPERTY LINK_DEPENDS
+      "${CMAKE_CURRENT_SOURCE_DIR}/linker/common_internal_sections.ld")
+endif()
 
 target_include_directories(${TARGET} PRIVATE
     "${PLATFORM_DIR}/include"

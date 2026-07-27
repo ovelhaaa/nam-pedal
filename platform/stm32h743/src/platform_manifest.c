@@ -67,6 +67,7 @@ _Noreturn void platform_boot_jump(const nam_manifest_t *manifest) {
   SysTick->CTRL = 0U;
   SysTick->LOAD = 0U;
   SysTick->VAL = 0U;
+  SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk | SCB_ICSR_PENDSVCLR_Msk;
   for (uint32_t bank = 0U; bank < 8U; ++bank) {
     NVIC->ICER[bank] = 0xFFFFFFFFU;
     NVIC->ICPR[bank] = 0xFFFFFFFFU;
@@ -96,6 +97,8 @@ bool platform_verify_xip_boot_contract(void) {
          ((QUADSPI->CCR & QUADSPI_CCR_FMODE) == QUADSPI_CCR_FMODE) &&
          (SCB->CCR & (SCB_CCR_IC_Msk | SCB_CCR_DC_Msk)) == 0U &&
          (MPU->CTRL & MPU_CTRL_ENABLE_Msk) == 0U && SysTick->CTRL == 0U &&
+         (SCB->ICSR &
+          (SCB_ICSR_PENDSTSET_Msk | SCB_ICSR_PENDSVSET_Msk)) == 0U &&
          SCB->VTOR == NAM_XIP_APPLICATION_ADDRESS &&
          __get_PRIMASK() != 0U;
 }

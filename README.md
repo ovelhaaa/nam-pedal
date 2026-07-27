@@ -66,7 +66,7 @@ Cada alvo produz `.elf`, `.bin`, `.hex` e `.map`. O alvo XIP também produz:
 | Imagem | Endereço | Papel |
 |---|---:|---|
 | bootloader | `0x08000000` | Clock, QSPI, validação e salto |
-| bring-up interno | `0x08020000` | Diagnóstico 400/480 MHz sem ocupar a reserva do bootloader |
+| bring-up standalone | `0x08000000` | Diagnóstico temporário 400/480 MHz, substituído depois pelo bootloader |
 | aplicação XIP | `0x90010000` | Verifica o contrato, configura MPU/cache e executa diagnóstico |
 
 O startup CMSIS da revisão fixada do CubeH7 chama a implementação local de
@@ -85,13 +85,15 @@ Fluxo do bootloader:
 7. lê 256 bytes em Quad-I/O SDR 1-4-4 e calcula CRC32;
 8. entra em memory-mapped e compara o CRC da mesma região;
 9. valida manifest, stack pointer, reset vector e CRC32 da imagem;
-10. desliga SysTick, limpa enable/pending do NVIC, desliga caches/MPU,
-    define VTOR/MSP e salta para `0x90010000`.
+10. desliga SysTick, limpa SysTick/PendSV pendentes no SCB e enable/pending
+    das IRQs externas no NVIC, desliga caches/MPU, define VTOR/MSP e salta para
+    `0x90010000`.
 
 Estado entregue à aplicação: CPU a 480 MHz, HCLK a 240 MHz, QSPI
-memory-mapped, caches e MPU desligados, SysTick parado, IRQs mascaradas e VTOR
-em `0x90010000`. A aplicação valida esse estado antes de chamar `HAL_Init()`;
-ela não reconfigura RCC/QSPI, prepara MPU/cache e só então habilita IRQs.
+memory-mapped, caches e MPU desligados, SysTick parado, SysTick/PendSV sem
+pendências, IRQs mascaradas e VTOR em `0x90010000`. A aplicação valida esse
+estado antes de chamar `HAL_Init()`; ela não reconfigura RCC/QSPI, prepara
+MPU/cache e só então habilita IRQs.
 
 ## Perfis de clock e revisão de silício
 
@@ -264,8 +266,9 @@ permanece recuperável por SWD.
 
 ## Programação e bring-up
 
-Use ST-LINK/SWD e STM32CubeProgrammer. Primeiro grave o bring-up interno para
-identificar `DEV_ID/REV_ID` e JEDEC sem depender da aplicação XIP:
+Use ST-LINK/SWD e STM32CubeProgrammer. Primeiro grave o bring-up standalone
+para identificar `DEV_ID/REV_ID` e JEDEC sem depender da aplicação XIP. Essa
+imagem ocupa temporariamente `0x08000000`; ela e o bootloader não coexistem:
 
 ```powershell
 STM32_Programmer_CLI -c port=SWD -w build/bringup-400-debug/nam_bringup_SAFE_400MHZ.hex -v -rst
