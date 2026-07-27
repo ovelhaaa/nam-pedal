@@ -23,25 +23,9 @@ int main(void) {
   platform_print_diagnostics(&clock);
   platform_uart_write_dec("dwt.cyccnt.test=", dwt_ok ? 1U : 0U);
 
-  if (!platform_qspi_initialize(&qspi)) {
-    platform_uart_write_hex("qspi.jedec=",
-                            ((uint32_t)qspi.jedec_id[0] << 16U) |
-                                ((uint32_t)qspi.jedec_id[1] << 8U) |
-                                qspi.jedec_id[2]);
+  if (!platform_qspi_bring_up_and_report(&qspi)) {
     platform_fatal(qspi.error);
   }
-  platform_uart_write_hex("qspi.jedec=",
-                          ((uint32_t)qspi.jedec_id[0] << 16U) |
-                              ((uint32_t)qspi.jedec_id[1] << 8U) |
-                              qspi.jedec_id[2]);
-  platform_uart_write("qspi.device=");
-  platform_uart_write(qspi.device->name);
-  platform_uart_write("\r\n");
-  platform_uart_write_hex("qspi.indirect.crc32=", qspi.indirect_crc32);
-  if (!platform_qspi_enter_memory_mapped(&qspi)) {
-    platform_fatal(qspi.error);
-  }
-  platform_uart_write_hex("qspi.mapped.crc32=", qspi.mapped_crc32);
   platform_uart_write("bringup.result=PASS\r\n");
 
   for (;;) {

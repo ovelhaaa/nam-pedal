@@ -1,4 +1,28 @@
 #include "platform.h"
+#include "platform_qspi.h"
+
+static uint32_t qspi_jedec_id(const platform_qspi_result_t *result) {
+  return ((uint32_t)result->jedec_id[0] << 16U) |
+         ((uint32_t)result->jedec_id[1] << 8U) | result->jedec_id[2];
+}
+
+bool platform_qspi_bring_up_and_report(platform_qspi_result_t *result) {
+  if (!platform_qspi_initialize(result)) {
+    platform_uart_write_hex("qspi.jedec=", qspi_jedec_id(result));
+    return false;
+  }
+
+  platform_uart_write_hex("qspi.jedec=", qspi_jedec_id(result));
+  platform_uart_write("qspi.device=");
+  platform_uart_write(result->device->name);
+  platform_uart_write("\r\n");
+  platform_uart_write_hex("qspi.indirect.crc32=", result->indirect_crc32);
+  if (!platform_qspi_enter_memory_mapped(result)) {
+    return false;
+  }
+  platform_uart_write_hex("qspi.mapped.crc32=", result->mapped_crc32);
+  return true;
+}
 
 void platform_print_diagnostics(const platform_clock_result_t *clock_result) {
   uint32_t idcode = DBGMCU->IDCODE;

@@ -27,6 +27,7 @@ typedef struct {
 
 bool platform_qspi_initialize(platform_qspi_result_t *result);
 bool platform_qspi_enter_memory_mapped(platform_qspi_result_t *result);
+bool platform_qspi_bring_up_and_report(platform_qspi_result_t *result);
 bool platform_qspi_is_memory_mapped(void);
 const platform_qspi_device_t *platform_qspi_lookup(const uint8_t jedec_id[3]);
 

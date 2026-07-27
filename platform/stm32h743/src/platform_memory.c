@@ -1,7 +1,7 @@
 #include "platform.h"
 
 static void configure_region(uint32_t number, uint32_t base, uint32_t size,
-                             uint32_t access, uint32_t executable,
+                             uint32_t access, uint32_t disable_exec,
                              uint32_t cacheable, uint32_t bufferable,
                              uint32_t shareable, uint32_t tex) {
   MPU_Region_InitTypeDef region = {0};
@@ -12,7 +12,7 @@ static void configure_region(uint32_t number, uint32_t base, uint32_t size,
   region.SubRegionDisable = 0x00U;
   region.TypeExtField = tex;
   region.AccessPermission = access;
-  region.DisableExec = executable;
+  region.DisableExec = disable_exec;
   region.IsShareable = shareable;
   region.IsCacheable = cacheable;
   region.IsBufferable = bufferable;
