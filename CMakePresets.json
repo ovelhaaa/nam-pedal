@@ -1,0 +1,74 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolchainFile": "${sourceDir}/cmake/arm-none-eabi-toolchain.cmake"
+    },
+    {
+      "name": "bootloader-debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NAM_IMAGE": "bootloader",
+        "CLOCK_PROFILE": "PERFORMANCE_480MHZ"
+      }
+    },
+    {
+      "name": "bootloader-release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "NAM_IMAGE": "bootloader",
+        "CLOCK_PROFILE": "PERFORMANCE_480MHZ"
+      }
+    },
+    {
+      "name": "bringup-400-debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NAM_IMAGE": "bringup",
+        "CLOCK_PROFILE": "SAFE_400MHZ"
+      }
+    },
+    {
+      "name": "bringup-480-debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NAM_IMAGE": "bringup",
+        "CLOCK_PROFILE": "PERFORMANCE_480MHZ"
+      }
+    },
+    {
+      "name": "xip-debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NAM_IMAGE": "xip",
+        "CLOCK_PROFILE": "PERFORMANCE_480MHZ"
+      }
+    },
+    {
+      "name": "xip-release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "NAM_IMAGE": "xip",
+        "CLOCK_PROFILE": "PERFORMANCE_480MHZ"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "bootloader-debug", "configurePreset": "bootloader-debug" },
+    { "name": "bootloader-release", "configurePreset": "bootloader-release" },
+    { "name": "bringup-400-debug", "configurePreset": "bringup-400-debug" },
+    { "name": "bringup-480-debug", "configurePreset": "bringup-480-debug" },
+    { "name": "xip-debug", "configurePreset": "xip-debug" },
+    { "name": "xip-release", "configurePreset": "xip-release" }
+  ]
+}
