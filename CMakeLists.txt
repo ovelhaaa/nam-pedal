@@ -64,6 +64,13 @@ set(PLATFORM_SOURCES
     "${PLATFORM_DIR}/src/platform_sections.c"
     "${PLATFORM_DIR}/src/platform_hal.c")
 
+if(NAM_IMAGE STREQUAL "xip")
+  list(APPEND HAL_SOURCES
+      "${HAL_ROOT}/Src/stm32h7xx_hal_sai.c")
+  list(APPEND PLATFORM_SOURCES
+      "${CMAKE_CURRENT_SOURCE_DIR}/audio/audio.c")
+endif()
+
 if(NAM_IMAGE STREQUAL "bootloader")
   set(MAIN_SOURCE "${PLATFORM_DIR}/src/main_bootloader.c")
   set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/linker/bootloader.ld")
@@ -90,6 +97,7 @@ if(NOT NAM_IMAGE STREQUAL "xip")
 endif()
 
 target_include_directories(${TARGET} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/audio"
     "${PLATFORM_DIR}/include"
     "${HAL_ROOT}/Inc"
     "${HAL_ROOT}/Inc/Legacy"
