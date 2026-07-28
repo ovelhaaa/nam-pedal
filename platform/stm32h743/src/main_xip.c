@@ -1,8 +1,11 @@
+#include "audio.h"
 #include "platform.h"
 #include "platform_manifest.h"
 
 int main(void) {
   platform_clock_result_t clock = {0};
+  platform_error_t audio_error;
+  uint32_t last_audio_report;
   bool dwt_ok;
 
   if (!platform_verify_xip_boot_contract()) {
@@ -32,8 +35,25 @@ int main(void) {
   platform_uart_write_dec("dwt.cyccnt.test=", dwt_ok ? 1U : 0U);
   platform_uart_write("xip.contract=PASS\r\n");
 
+  audio_error = audio_init();
+  if (audio_error != PLATFORM_OK) {
+    platform_fatal(audio_error);
+  }
+  audio_report_configuration();
+
   __enable_irq();
+  audio_error = audio_start();
+  if (audio_error != PLATFORM_OK) {
+    platform_fatal(audio_error);
+  }
+  last_audio_report = HAL_GetTick();
+
   for (;;) {
+    uint32_t now = HAL_GetTick();
+    if ((uint32_t)(now - last_audio_report) >= AUDIO_REPORT_INTERVAL_MS) {
+      last_audio_report = now;
+      audio_report_stats();
+    }
     __WFI();
   }
 }

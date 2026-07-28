@@ -3,10 +3,10 @@
 Este repositório está sendo portado para a WeAct Studio STM32H743VIT6
 (Cortex-M7, LQFP100, HSE de 25 MHz). A etapa atual contém somente a fundação
 bare-metal/HAL: startup CMSIS, clocks, UART, DWT, MPU/cache, bootloader, QSPI e
-uma aplicação de diagnóstico XIP.
+uma aplicação XIP de passthrough de áudio por SAI3/DMA.
 
-Ainda **não** há áudio, processamento NAM, carregamento `.namb`, display,
-encoder ou IR funcionais. O engine `NeuralAmpModelerCore` e o
+Ainda **não** há processamento NAM, carregamento `.namb`, display, encoder ou
+IR funcionais. O engine `NeuralAmpModelerCore` e o
 `nam-binary-loader` permanecem submódulos protegidos e não participam dos
 alvos desta etapa.
 
@@ -210,6 +210,8 @@ Pinagem implementada nesta etapa:
 |---|---|---|
 | QSPI firmware | PB2, PB6, PD11, PD12, PE2, PD13 | implementada |
 | USART3 | PB10 TX, PB11 RX (AF7) | implementada, 115200 8N1 |
+| SAI3 áudio | PD0 BCLK, PD4 LRCK, PD1 DAC DIN, PD9 ADC DOUT, PD15 ADC MCLK | implementado |
+| GPIO de diagnóstico | PE4 | implementado, pulso durante cada callback RX |
 | LED de erro | PE3 | implementado, padrão por código |
 | SWD | PA13 SWDIO, PA14 SWCLK | preservado |
 
@@ -223,16 +225,15 @@ Pinagem reservada, ainda sem driver:
 | USB FS | PA11 DM, PA12 DP |
 | botão K1 | PC13 |
 | ROM serial recovery | PA9/PA10 livres |
-| áudio SAI3 futuro | PD0 SCK_A, PD4 FS_A, PD1 SD_A, PD15 MCLK_A, PD9 SD_B; AF6 |
 
 SPI1 fica exclusivo para modelos/IRs e não será compartilhado com o display.
 MCLK nunca será ligado ao PCM5102.
 
-### Pinagem de áudio aprovada para a próxima etapa
+### Áudio SAI3/DMA
 
 A proposta original para SAI1 era impossível no STM32H743VI **LQFP100**:
 `PF6=SAI1_SD_B` e `PG7=SAI1_MCLK_A` não existem nesse encapsulamento. A solução
-aprovada usa os dois blocos do SAI3:
+implementada usa os dois blocos do SAI3:
 
 | Rede de áudio | Função SAI3 | GPIO | Header WeAct |
 |---|---|---|---|
@@ -242,7 +243,7 @@ aprovada usa os dois blocos do SAI3:
 | PCM1808 DOUT | SD_B | PD9/AF6 | P1-37 |
 | PCM1808 SCKI/MCLK | MCLK_A | PD15/AF6 | P1-31 |
 
-O Block A será master transmitter. O Block B será synchronous receiver e usará
+O Block A é master transmitter. O Block B é synchronous receiver e usa
 internamente SCK/FS do Block A, portanto `SCK_B`, `FS_B` e `MCLK_B` não serão
 roteados. BCLK e LRCK serão ligados aos dois codecs; MCLK será ligado somente
 ao PCM1808. O pino SCK/MCLK da breakout PCM5102 permanece aterrado.
@@ -253,16 +254,67 @@ não existe continuidade. A USART3 foi movida de PD8/PD9 para PB10/PB11 para
 liberar PD9 ao SAI3 Block B. PLL3 ficará reservada ao clock de áudio; PLL2
 continua exclusiva para QSPI.
 
-SAI3, DMA de áudio e passthrough continuam fora do escopo desta fundação e não
-estão implementados.
+Configuração implementada:
+
+- PLL3P: aproximadamente `49,1519928 MHz` (`-0,15 ppm` do alvo);
+- MCLK do PCM1808: aproximadamente `12,2879982 MHz`, ou `256 × Fs`;
+- BCLK compartilhado: aproximadamente `3,0719995 MHz`, ou `64 × Fs`;
+- LRCK: aproximadamente `47,999993 kHz`;
+- I2S estéreo, dois slots de 32 bits e amostras de 24 bits;
+- Block A assíncrono/master TX e Block B síncrono/slave RX;
+- DMA1 circular, double buffer lógico, 48 frames por metade (`1 ms`);
+- buffers RX/TX em `.audio_dma_buffers`, na D2 SRAM não cacheável;
+- cópia direta ADC → DAC, sem ganho, NAM ou qualquer processamento.
+
+Straps obrigatórios:
+
+| Codec | Strap | Estado |
+|---|---|---|
+| PCM1808 | MD1, MD0 | GND, GND: slave |
+| PCM1808 | FMT | GND: I2S de 24 bits |
+| PCM5102 | FMT | GND: I2S |
+| PCM5102 | SCK/MCLK | GND: PLL interno a partir de BCLK |
+
+Ao iniciar, a aplicação XIP imprime a configuração e, a cada segundo,
+contadores `audio.rx.callbacks`, `audio.tx.callbacks`, `audio.overruns`,
+`audio.underruns`, `audio.dma.errors`, `audio.frame.errors`,
+`audio.buffer.phase.errors`, `audio.late.blocks`, `audio.xruns`,
+`audio.worst.cycles` e `audio.worst.us`.
+Em regime, cada contador de callbacks deve avançar aproximadamente 1000 vezes
+por segundo e `audio.xruns` deve permanecer zero.
+
+`PE4` fica alto somente durante a cópia do bloco RX para o bloco TX. Deve haver
+um pulso a cada `1 ms`; a largura mede o pior tempo do callback. Esse sinal
+pode ser observado por analisador lógico, desde que sua taxa de amostragem seja
+suficiente para a largura curta do pulso.
+
+### Verificação com analisador lógico
+
+Conecte primeiro o GND e use somente entradas compatíveis com 3,3 V:
+
+| Canal | Pino | Resultado esperado |
+|---|---|---|
+| LRCK | PD4 | cerca de 48 kHz, duty próximo de 50% |
+| BCLK | PD0 | cerca de 3,072 MHz, 64 pulsos por frame |
+| ADC MCLK | PD15 | cerca de 12,288 MHz, somente no PCM1808 |
+| ADC DOUT | PD9 | dados I2S mudando com o sinal de entrada |
+| DAC DIN | PD1 | os mesmos words de PD9, com latência fixa de dois blocos (`2 ms`) |
+| callback | PE4 | período de 1 ms; largura igual ao tempo da cópia |
+
+Para validar MCLK com confiança, a taxa do analisador deve ser muito maior que
+`24,576 MS/s`; abaixo disso a medição de `12,288 MHz` pode sofrer aliasing.
+LRCK e BCLK continuam úteis em analisadores mais simples. Áudio analógico limpo
+deve ser confirmado também ouvindo a saída ou gravando-a em uma interface de
+áudio: o analisador lógico valida clocks, formato e continuidade digital, não
+distorção/ruído analógico.
 
 ## Erros e recuperação
 
 Erros críticos tentam registrar `FATAL=<código>` pela UART e piscam PE3 em
 grupos de pulsos. Há códigos distintos para clock, VOS, UART, JEDEC
 desconhecido, leitura indireta, memory-mapped, manifest, stack, reset vector,
-CRC, contrato de boot e configuração QSPI. O firmware não salta após erro e
-permanece recuperável por SWD.
+CRC, contrato de boot, configuração QSPI, clock de áudio, SAI e DMA. O firmware
+não salta após erro e permanece recuperável por SWD.
 
 ## Programação e bring-up
 
@@ -299,7 +351,11 @@ como programador da QSPI.
 - identificação física e JEDEC da QSPI;
 - leitura indireta e memory-mapped a 60 MHz;
 - gravação/validação do manifest e salto para `0x90010000`;
-- soak test XIP, reset normal e reset/watchdog durante inicialização QSPI;
+- clocks LRCK/BCLK/MCLK e alinhamento I2S no SAI3;
+- passthrough contínuo e sem distorção/ruído audível;
+- soak test XIP prolongado com callbacks avançando, `audio.xruns=0` e sem
+  crescimento de `audio.worst.us` até o orçamento de 1 ms;
+- reset normal e reset/watchdog durante inicialização QSPI;
 - recuperação por SWD.
 
 Resultados de compilação e inspeção de ELF não substituem esses testes.

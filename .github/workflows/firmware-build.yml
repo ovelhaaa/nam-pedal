@@ -1,0 +1,84 @@
+name: Firmware build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firmware-build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.preset }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        preset:
+          - bootloader-debug
+          - bootloader-release
+          - bringup-400-debug
+          - bringup-480-debug
+          - xip-debug
+          - xip-release
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Initialize STM32CubeH7 dependencies
+        shell: bash
+        run: |
+          git submodule update --init --depth 1 third_party/STM32CubeH7
+          git -C third_party/STM32CubeH7 submodule update --init --depth 1 \
+            Drivers/CMSIS/Device/ST/STM32H7xx \
+            Drivers/STM32H7xx_HAL_Driver
+
+      - name: Install ARM build tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            cmake \
+            gcc-arm-none-eabi \
+            libnewlib-arm-none-eabi \
+            ninja-build \
+            python3
+
+      - name: Report tool versions
+        shell: bash
+        run: |
+          cmake --version
+          ninja --version
+          arm-none-eabi-gcc --version
+          python3 --version
+
+      - name: Configure
+        run: cmake --preset "${{ matrix.preset }}"
+
+      - name: Build
+        run: cmake --build --preset "${{ matrix.preset }}" --parallel
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: firmware-${{ matrix.preset }}
+          path: |
+            build/${{ matrix.preset }}/*.elf
+            build/${{ matrix.preset }}/*.bin
+            build/${{ matrix.preset }}/*.hex
+            build/${{ matrix.preset }}/*.map
+          if-no-files-found: error
+          retention-days: 14

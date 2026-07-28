@@ -10,6 +10,7 @@
 #define HAL_PWR_MODULE_ENABLED
 #define HAL_QSPI_MODULE_ENABLED
 #define HAL_RCC_MODULE_ENABLED
+#define HAL_SAI_MODULE_ENABLED
 #define HAL_UART_MODULE_ENABLED
 
 #ifndef HSE_VALUE
@@ -35,6 +36,7 @@
 #include "stm32h7xx_hal_cortex.h"
 #include "stm32h7xx_hal_pwr.h"
 #include "stm32h7xx_hal_qspi.h"
+#include "stm32h7xx_hal_sai.h"
 #include "stm32h7xx_hal_uart.h"
 
 #ifdef USE_FULL_ASSERT
